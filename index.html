@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor jumlah Produk</title>
+    <!-- Google Fonts: Playfair Display & Plus Jakarta Sans -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0a0a0a;
+            --card-dark: #141414;
+            --border-gold: rgba(212, 175, 55, 0.3);
+            --gold: #d4af37;
+            --gold-hover: #f3e5ab;
+            --gold-dark: #aa8c2c;
+            --text-main: #f5f5f5;
+            --text-muted: #a3a3a3;
+        }
+
+        /* Animasi Masuk Awal (Judul) */
+        @keyframes slideUpFade {
+            0% {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Animasi Transisi Halaman yang Sangat Halus (Smooth Fade & Slide) */
+        .view-section {
+            opacity: 1;
+            transform: translateY(0);
+            transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .view-hidden {
+            opacity: 0;
+            transform: translateY(12px);
+            pointer-events: none;
+            position: absolute;
+            width: 0;
+            height: 0;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            color: var(--text-main);
+            margin: 0;
+            padding: 50px 20px 70px 20px;
+            min-height: 100vh;
+            box-sizing: border-box;
+            position: relative;
+            transition: background-image 0.5s ease;
+        }
+
+        /* Lapisan Overlay Gelap Default */
+        .bg-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(10, 10, 10, 0.85);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* Lapisan Efek Senter Terang Mengikuti Kursor */
+        .bg-spotlight {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            pointer-events: none;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            mask-image: radial-gradient(circle 220px at var(--cursor-x, 50%) var(--cursor-y, 50%), black 0%, transparent 100%);
+            -webkit-mask-image: radial-gradient(circle 220px at var(--cursor-x, 50%) var(--cursor-y, 50%), black 0%, transparent 100%);
+            opacity: 1;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: auto;
+            background-color: var(--card-dark);
+            padding: 40px;
+            border-radius: 16px;
+            border: 1px solid var(--border-gold);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(212, 175, 55, 0.05);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            z-index: 2;
+        }
+
+        /* Aksen Motif Garis-garis Halus Full Menutupi Seluruh Background Frame */
+        .container::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 1;
+            background-image: repeating-linear-gradient(45deg, rgba(212, 175, 55, 0.04) 0, rgba(212, 175, 55, 0.04) 1px, transparent 1px, transparent 10px);
+            opacity: 0.8;
+        }
+
+        /* Pastikan elemen di dalam container berada di atas lapisan motif */
+        .container > * {
+            position: relative;
+            z-index: 2;
+        }
+
+        .header-title {
+            margin-bottom: 40px;
+            animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .header-title h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--gold);
+            margin: 0 0 12px 0;
+            letter-spacing: 0.5px;
+        }
+
+        .header-title p {
+            font-size: 15px;
+            color: var(--text-muted);
+            margin: 0;
+        }
+
+        /* Tombol Pilihan Utama (Landing Menu) */
+        .landing-menu {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 30px;
+            animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.15s forwards;
+            opacity: 0;
+        }
+
+        .btn-menu {
+            background: #1a1a1a;
+            color: var(--gold);
+            border: 1px solid var(--border-gold);
+            padding: 20px 45px;
+            font-size: 18px;
+            font-weight: 600;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            font-family: 'Playfair Display', serif;
+        }
+
+        .btn-menu:hover {
+            background: var(--gold);
+            color: #0a0a0a;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(212, 175, 55, 0.3);
+        }
+
+        .btn-menu:active {
+            transform: translateY(1px);
+        }
+
+        /* Tombol Kembali / Navigasi */
+        .btn-back {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid #333;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            margin-bottom: 25px;
+            transition: all 0.2s ease;
+            float: left;
+        }
+
+        .btn-back:hover {
+            color: var(--gold);
+            border-color: var(--gold);
+        }
+
+        /* Kolom Pencarian (Search Bar) */
+        .search-container {
+            margin-bottom: 20px;
+            clear: both;
+            text-align: left;
+        }
+
+        .search-container input {
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* Form & Tabel Styling */
+        .form-card {
+            background: #1a1a1a;
+            border: 1px solid var(--border-gold);
+            padding: 24px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr auto;
+            gap: 16px;
+            align-items: end;
+            text-align: left;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .input-group label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--gold);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        input {
+            padding: 12px 16px;
+            font-size: 14px;
+            border: 1px solid #333;
+            border-radius: 8px;
+            background: #0f0f0f;
+            color: var(--text-main);
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        input:focus {
+            border-color: var(--gold);
+            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.15);
+        }
+
+        button.btn-primary {
+            background: linear-gradient(135deg, #d4af37 0%, #aa8c2c 100%);
+            color: #0a0a0a;
+            border: none;
+            padding: 13px 24px;
+            font-size: 14px;
+            font-weight: 700;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            height: 46px;
+            letter-spacing: 0.5px;
+        }
+
+        button.btn-primary:hover {
+            background: linear-gradient(135deg, #f3e5ab 0%, #d4af37 100%);
+            box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 10px;
+            border: 1px solid var(--border-gold);
+            text-align: left;
+            clear: both;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        th {
+            background-color: #1a1a1a;
+            color: var(--gold);
+            font-weight: 600;
+            padding: 16px;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 1px;
+            border-bottom: 1px solid var(--border-gold);
+        }
+
+        td {
+            padding: 16px;
+            border-bottom: 1px solid #222;
+            color: var(--text-main);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background-color: #171717;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: 20px;
+            letter-spacing: 0.3px;
+        }
+
+        .badge-match {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--text-muted);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .badge-plus {
+            background-color: rgba(34, 197, 94, 0.15);
+            color: #4ade80;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        .badge-minus {
+            background-color: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-delete {
+            background: transparent;
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-delete:hover {
+            background-color: #ef4444;
+            color: white;
+            border-color: #ef4444;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        /* Styling untuk Credit text di pojok kanan bawah web dengan font miring */
+        .footer-credit {
+            position: fixed;
+            bottom: 15px;
+            right: 25px;
+            font-size: 13px;
+            font-style: italic;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+            z-index: 1000;
+            pointer-events: none;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+
+        .footer-credit span {
+            color: var(--gold);
+            font-weight: 600;
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            .form-card {
+                grid-template-columns: 1fr;
+            }
+            .landing-menu {
+                flex-direction: column;
+            }
+            .footer-credit {
+                right: 15px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Lapisan Background & Efek Senter Kursor -->
+<div class="bg-overlay"></div>
+<div id="bgSpotlight" class="bg-spotlight"></div>
+
+<div class="container">
+    <!-- Judul Web -->
+    <div class="header-title">
+        <h2>Monitor jumlah Produk</h2>
+        <p>Sistem pencatatan dan perbandingan jumlah produk yang ada di Display toko dan Sistem</p>
+    </div>
+
+    <!-- Tampilan Awal (Landing Menu) -->
+    <div id="landingView" class="view-section">
+        <div class="landing-menu">
+            <button class="btn-menu" onclick="selectCategory('Makanan')">Makanan</button>
+            <button class="btn-menu" onclick="selectCategory('Minuman')">Minuman</button>
+        </div>
+    </div>
+
+    <!-- Tampilan Dashboard Detail Kategori -->
+    <div id="dashboardView" class="view-section view-hidden">
+        <button class="btn-back" onclick="goBack()">&larr; Kembali ke Pilihan Kategori</button>
+        
+        <h3 id="categoryTitle" style="color: var(--gold); font-family: 'Playfair Display', serif; font-size: 24px; margin-bottom: 20px; clear: both;"></h3>
+
+        <!-- Kolom Pencarian Produk -->
+        <div class="search-container">
+            <input type="text" id="searchProduct" placeholder="Cari nama produk..." oninput="renderTable()">
+        </div>
+
+        <!-- Form Input -->
+        <form id="productForm" class="form-card">
+            <div class="input-group">
+                <label for="productName">Nama Produk</label>
+                <input type="text" id="productName" placeholder="Contoh: Nasi Goreng" required>
+            </div>
+            <div class="input-group">
+                <label for="systemQty">Total di Sistem</label>
+                <input type="number" id="systemQty" placeholder="0" min="0" required>
+            </div>
+            <div class="input-group">
+                <label for="displayQty">Display Toko</label>
+                <input type="number" id="displayQty" placeholder="0" min="0" required>
+            </div>
+            <button type="submit" class="btn-primary">Tambah</button>
+        </form>
+
+        <!-- Tabel Data -->
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nama Produk</th>
+                        <th style="text-align: center;">Total di Sistem</th>
+                        <th style="text-align: center;">Display Toko</th>
+                        <th style="text-align: center;">Hasil Pengurangan</th>
+                        <th style="text-align: center;">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="productTableBody">
+                    <!-- Data produk masuk di sini -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Credit / Pembuat di Pojok Kanan Bawah Web (Font Miring) -->
+<div class="footer-credit">
+    Create by <span>Mamulo</span>
+</div>
+
+<script>
+    // Generator Sound Effect Klik Otomatis (Web Audio API)
+    function playClickSound() {
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.05);
+
+            gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.05);
+        } catch (e) {
+            // Abaikan jika browser membatasi audio otomatis
+        }
+    }
+
+    // URL Latar Belakang untuk masing-masing halaman
+    const bgHome = "url('https://cdn11.bigcommerce.com/s-k0hjo2yyrq/images/stencil/1280x1280/products/17981/18407/Product_banner_Strandard__90014.1721378624.jpg?c=1')";
+    const bgMakanan = "url('https://images8.alphacoders.com/114/1143202.jpg')";
+    const bgMinuman = "url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT6Ekw0jryXcmjuZnkDTu5cvL9bK8ka08lBWpjkwItlpQ&s=10')";
+
+    // Inisialisasi Background Awal
+    const bgSpotlight = document.getElementById('bgSpotlight');
+    document.body.style.backgroundImage = bgHome;
+    bgSpotlight.style.backgroundImage = bgHome;
+
+    // Efek Kursor Menyala (Spotlight) Mengikuti Posisi Mouse
+    window.addEventListener('mousemove', (e) => {
+        const x = e.clientX + 'px';
+        const y = e.clientY + 'px';
+        document.documentElement.style.setProperty('--cursor-x', x);
+        document.documentElement.style.setProperty('--cursor-y', y);
+    });
+
+    // Memakai localStorage 'products_v7' agar data lama Anda tetap aman
+    let products = JSON.parse(localStorage.getItem('products_v7')) || [];
+    let activeCategory = '';
+
+    const landingView = document.getElementById('landingView');
+    const dashboardView = document.getElementById('dashboardView');
+    const categoryTitle = document.getElementById('categoryTitle');
+    const searchProductInput = document.getElementById('searchProduct');
+    const productForm = document.getElementById('productForm');
+    const productNameInput = document.getElementById('productName');
+    const systemQtyInput = document.getElementById('systemQty');
+    const displayQtyInput = document.getElementById('displayQty');
+    const productTableBody = document.getElementById('productTableBody');
+
+    function selectCategory(category) {
+        playClickSound();
+        activeCategory = category;
+        categoryTitle.innerText = `Daftar Produk: ${category}`;
+        searchProductInput.value = ''; // Reset pencarian saat ganti kategori
+
+        // Ganti background sesuai kategori yang dipilih
+        let selectedBg = bgHome;
+        if (category === 'Makanan') {
+            selectedBg = bgMakanan;
+        } else if (category === 'Minuman') {
+            selectedBg = bgMinuman;
+        }
+        
+        document.body.style.backgroundImage = selectedBg;
+        bgSpotlight.style.backgroundImage = selectedBg;
+
+        // Transisi halus (Fade Out & Fade In instan tanpa delay kaku)
+        landingView.classList.add('view-hidden');
+        dashboardView.classList.remove('view-hidden');
+        renderTable();
+    }
+
+    function goBack() {
+        playClickSound();
+
+        // Kembalikan background ke Menu Utama (Home)
+        document.body.style.backgroundImage = bgHome;
+        bgSpotlight.style.backgroundImage = bgHome;
+
+        dashboardView.classList.add('view-hidden');
+        landingView.classList.remove('view-hidden');
+    }
+
+    function renderTable() {
+        productTableBody.innerHTML = '';
+        
+        let keyword = searchProductInput.value.toLowerCase();
+
+        let filteredProducts = products.filter(product => {
+            let cat = product.category || 'Makanan';
+            let matchCategory = (cat === activeCategory);
+            let matchSearch = product.name.toLowerCase().includes(keyword);
+            return matchCategory && matchSearch;
+        });
+
+        if (filteredProducts.length === 0) {
+            productTableBody.innerHTML = `<tr><td colspan="5" class="empty-state">Tidak ada produk yang ditemukan.</td></tr>`;
+            return;
+        }
+
+        filteredProducts.forEach((product) => {
+            let originalIndex = products.indexOf(product);
+
+            let system = parseInt(product.system);
+            let display = parseInt(product.display);
+            let rawDiff = system - display;
+            
+            let badgeClass = '';
+            let displayText = '';
+            
+            if (rawDiff === 0) {
+                badgeClass = 'badge-match';
+                displayText = '-';
+            } else if (rawDiff < 0) {
+                let positiveVal = Math.abs(rawDiff);
+                badgeClass = 'badge-plus';
+                displayText = `+${positiveVal}`;
+            } else {
+                badgeClass = 'badge-minus';
+                displayText = `-${rawDiff}`;
+            }
+
+            let row = document.createElement('tr');
+            row.innerHTML = `
+                <td style="font-weight: 600; color: #ffffff;">${product.name}</td>
+                <td style="text-align: center;">${system}</td>
+                <td style="text-align: center;">${display}</td>
+                <td style="text-align: center;"><span class="badge ${badgeClass}">${displayText}</span></td>
+                <td style="text-align: center;">
+                    <button class="btn-delete" onclick="deleteProduct(${originalIndex})">Hapus</button>
+                </td>
+            `;
+            productTableBody.appendChild(row);
+        });
+
+        localStorage.setItem('products_v7', JSON.stringify(products));
+    }
+
+    productForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        playClickSound();
+        
+        const newProduct = {
+            name: productNameInput.value,
+            category: activeCategory,
+            system: parseInt(systemQtyInput.value),
+            display: parseInt(displayQtyInput.value)
+        };
+
+        products.push(newProduct);
+        productForm.reset();
+        renderTable();
+    });
+
+    function deleteProduct(index) {
+        playClickSound();
+        if(confirm('Yakin ingin menghapus data produk ini?')) {
+            products.splice(index, 1);
+            renderTable();
+        }
+    }
+</script>
+
+</body>
+</html>
